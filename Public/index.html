@@ -15,9 +15,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
-    <!-- QR Code Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/0.0.1/qrcode.min.js"></script>
-    
     <style>
         /* === CSS VARIABLES === */
         :root {
@@ -432,16 +429,6 @@
             transform: translateY(-2px);
         }
 
-        /* === QR CODE === */
-        .qrcode-container {
-            text-align: center;
-            margin-top: 2rem;
-            padding: 2rem;
-            background: var(--bg-primary);
-            border-radius: 15px;
-            border: 1px solid var(--border);
-        }
-
         /* === BATCH RESULTS === */
         .batch-results {
             margin-top: 2rem;
@@ -836,10 +823,6 @@
                             <i class="fas fa-bolt"></i>
                             Gerar Link Premium
                         </button>
-                        <button class="btn btn-secondary" onclick="generateQRCode()">
-                            <i class="fas fa-qrcode"></i>
-                            Gerar QR Code
-                        </button>
                     </div>
 
                     <!-- Result Section -->
@@ -868,15 +851,6 @@
                                     Testar Link
                                 </a>
                             </div>
-                        </div>
-
-                        <!-- QR Code Display -->
-                        <div id="qrcode-container" class="qrcode-container hidden">
-                            <canvas id="qrcode"></canvas>
-                            <button class="btn btn-secondary" onclick="downloadQRCode()">
-                                <i class="fas fa-download"></i>
-                                Download QR Code
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -1138,18 +1112,6 @@
                 }).format(date);
             }
 
-            static generateQRCode(canvas, text, size = 200) {
-                const qrcode = new QRCode(canvas, {
-                    text: text,
-                    width: size,
-                    height: size,
-                    colorDark: "#1DB954",
-                    colorLight: "#191414",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-                return qrcode;
-            }
-
             static trackEvent(category, action, label = null) {
                 const analytics = this.getLocalStorage('linkgen_analytics') || {
                     totalLinks: 0,
@@ -1187,7 +1149,7 @@
                 const types = {
                     'link': { 'generate': 'success', 'batch_generate': 'info' },
                     'copy': { 'copy': 'success' },
-                    'export': { 'csv': 'info', 'qrcode': 'info' }
+                    'export': { 'csv': 'info', 'text': 'info' }
                 };
                 return types[category]?.[action] || 'info';
             }
@@ -1332,25 +1294,6 @@
                 const resultSection = document.getElementById('result-section');
                 resultSection.classList.remove('hidden');
                 resultSection.classList.add('slide-in-up');
-
-                this.updateQRCode(link);
-            }
-
-            updateQRCode(link) {
-                const qrContainer = document.getElementById('qrcode-container');
-                const qrCanvas = document.getElementById('qrcode');
-                
-                if (!qrCanvas) return;
-
-                qrCanvas.innerHTML = '';
-                
-                try {
-                    LinkGenUtils.generateQRCode(qrCanvas, link, 160);
-                    qrContainer.classList.remove('hidden');
-                } catch (error) {
-                    console.error('QR Code generation failed:', error);
-                    qrContainer.classList.add('hidden');
-                }
             }
 
             async generateBatchLinks() {
@@ -1574,37 +1517,6 @@
                 LinkGenUtils.trackEvent('export', 'text', `batch_${this.batchLinks.length}`);
             }
 
-            generateQRCode() {
-                const linkElement = document.getElementById('generated-link-text');
-                if (!linkElement) return;
-
-                const link = linkElement.textContent;
-                this.updateQRCode(link);
-                
-                LinkGenUtils.showToast('QR Code gerado com sucesso!', 'success');
-                LinkGenUtils.trackEvent('qr', 'generate', 'single');
-            }
-
-            downloadQRCode() {
-                const qrCanvas = document.getElementById('qrcode');
-                if (!qrCanvas) return;
-
-                try {
-                    const link = qrCanvas.toDataURL('image/png');
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = link;
-                    downloadLink.download = `spotify-qrcode-${Date.now()}.png`;
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
-
-                    LinkGenUtils.showToast('QR Code baixado!', 'success');
-                    LinkGenUtils.trackEvent('export', 'qrcode', 'single');
-                } catch (error) {
-                    LinkGenUtils.showToast('Erro ao baixar QR Code', 'error');
-                }
-            }
-
             loadAnalytics() {
                 this.analytics = LinkGenUtils.getAnalytics();
                 this.updateAnalyticsDisplay();
@@ -1664,8 +1576,7 @@
                     },
                     'export': {
                         'csv': 'Links exportados como CSV',
-                        'text': 'Links exportados como texto',
-                        'qrcode': 'QR Code exportado'
+                        'text': 'Links exportados como texto'
                     },
                     'share': {
                         'native': 'Link compartilhado',
@@ -1724,20 +1635,6 @@
             }
 
             showAbout() {
-                const aboutHTML = `
-                    <div style="text-align: center; padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">🎵</div>
-                        <h2 style="margin-bottom: 1rem;">LinkGen Pro</h2>
-                        <p style="color: var(--text-secondary); margin-bottom: 2rem;">
-                            Gerador premium de links Spotify<br>
-                            Versão 2.0.0
-                        </p>
-                        <div style="display: flex; gap: 1rem; justify-content: center;">
-                            <button class="btn btn-secondary" onclick="LinkGenUtils.showToast('Modal fechado', 'success')">Fechar</button>
-                        </div>
-                    </div>
-                `;
-                
                 LinkGenUtils.showToast('Sistema de modal em desenvolvimento', 'info');
             }
         }
@@ -1748,8 +1645,6 @@
         function copyToClipboard() { app.copyToClipboard(); }
         function shareLink() { app.shareLink(); }
         function downloadLink() { app.downloadLink(); }
-        function generateQRCode() { app.generateQRCode(); }
-        function downloadQRCode() { app.downloadQRCode(); }
         function clearBatch() { app.clearBatch(); }
         function exportBatch() { app.exportBatch(); }
         function showSettings() { app.showSettings(); }
@@ -1762,4 +1657,4 @@
         });
     </script>
 </body>
-                                      </html>
+    </html>
